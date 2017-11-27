@@ -1,0 +1,10 @@
+importFrom("stats", "model.extract", "model.frame", "model.matrix",
+             "pnorm", "sd", "var")
+importFrom("methods", "is")
+importFrom("MASS", "ginv")
+importFrom("Matrix", "bdiag")
+import("survival")
+importFrom("geepack", "geese")
+exportPattern("^[[:alpha:]]+")
+
+S3method(print, geecure)
