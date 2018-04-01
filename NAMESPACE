@@ -8,3 +8,4 @@ importFrom("geepack", "geese")
 exportPattern("^[[:alpha:]]+")
 
 S3method(print, geecure)
+S3method(print, geecure2)

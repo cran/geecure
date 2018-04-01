@@ -1,6 +1,5 @@
-geecure <- function(formula, cureform, data, id, model = c("para", "semi"), corstr = c("independence", "exchangeable"), Var = TRUE, stdz = FALSE, boots = FALSE, nboot = 100, esmax = 100, eps = 1e-06) {
+geecure2 <- function(formula, cureform, data, id, corstr = c("independence", "exchangeable"), Var = TRUE, stdz = FALSE, boots = FALSE, nboot = 100, esmax = 100, eps = 1e-06) {
     call <- match.call()
-    model <- match.arg(model)
     data <- data
     id <- id
     uid <- sort(unique(id))
@@ -27,15 +26,10 @@ geecure <- function(formula, cureform, data, id, model = c("para", "semi"), cors
     n <- as.vector(table(id))
     mf <- model.frame(formula, data)
     mf1 <- model.frame(cureform, data)
-    Z <- model.matrix(attr(mf1, "terms"), mf1)
-    if (model == "para") {
-        X <- model.matrix(attr(mf, "terms"), mf)
-    }
-    if (model == "semi") {
-        X <- model.matrix(attr(mf, "terms"), mf)[, -1]
-        X <- as.matrix(X)
-        colnames(X) <- colnames(model.matrix(attr(mf, "terms"), mf))[-1] 
-    }    
+    Z <- model.matrix(attr(mf1, "terms"), mf1)  
+    X <- model.matrix(attr(mf, "terms"), mf)[, -1]
+    X <- as.matrix(X)
+    colnames(X) <- colnames(model.matrix(attr(mf, "terms"), mf))[-1]         
     gamma_name <- colnames(Z)  
     gamma_length <- ncol(Z)  
     beta_name <- colnames(X) 
@@ -48,42 +42,30 @@ geecure <- function(formula, cureform, data, id, model = c("para", "semi"), cors
     stdz <- stdz
     esmax <- esmax
     eps <- eps
-    esfit <- es(Time, Status, X, Z, id, model, corstr, stdz, esmax, eps)
+    esfit <- emes(Time, Status, X, Z, id, corstr, stdz, esmax, eps)
     gamma <- esfit$gamma
     names(gamma) <- gamma_name
     beta <- esfit$beta
-    if (model == "para") {
-        kappa <- esfit$kappa
-        alpha2 <- exp(beta[1])
-    }
     gcor <- esfit$gcor
     gphi <- esfit$gphi
     bcor <- esfit$bcor
     bphi <- esfit$bphi
     w <- esfit$w
-    Lambda <- esfit$Lambda
+    bsurv <- esfit$bsurv
     if (Var) {
-        varfit <- varest(Time, Status, X, Z, id, gamma, beta, kappa, gphi, gcor, bphi, bcor, Lambda, w, model)
+        varfit <- varest2(Time, Status, X, Z, id, gamma, beta, bsurv, w)
         var_gamma <- varfit$varga
         var_beta <- varfit$varbe
-        var_kappa <- varfit$varka
-        var_alpha2 <- (exp(beta[1]))^2 * var_beta[1]
         sd_gamma <- varfit$sdga
         sd_beta <- varfit$sdbe
-        sd_kappa <- varfit$sdka
-        sd_alpha2 <- sqrt(var_alpha2)
     }    
     if (boots) {
         Bootsample <- nboot
         stdz <- stdz
-        corstr <- corstr
-        model <- model        
+        corstr <- corstr       
         BMc <- matrix(0, Bootsample, ncol(Z))
         BMs <- matrix(0, Bootsample, ncol(X))
-        BMnus <- matrix(0, Bootsample, 4)
-        if (model == "para") {
-            BMnus <- matrix(0, Bootsample, 5)
-        }        
+        BMnus <- matrix(0, Bootsample, 4)       
         for (rrn in 1:Bootsample) {
         repeat{  bootid<- sample((1:K), replace = TRUE)
                  bootdata <- data[id == bootid[1], ]
@@ -100,32 +82,22 @@ geecure <- function(formula, cureform, data, id, model = c("para", "semi"), cors
                  mf <- model.frame(formula, bootdata)
                  mf1 <- model.frame(cureform, bootdata)
                  Z <- model.matrix(attr(mf1, "terms"), mf1)
-                 if (model == "para") {
-                 X <- model.matrix(attr(mf, "terms"), mf)
-                 }
-                 if (model == "semi") {
                  X <- model.matrix(attr(mf, "terms"), mf)[, -1]
                  X <- as.matrix(X)
                  colnames(X) <- colnames(model.matrix(attr(mf, "terms"), mf))[-1]
-                 }            
                  Y <- model.extract(mf, "response")
                  if (!inherits(Y, "Surv")) 
                  stop("Response must be a survival object")
                  Time <- Y[, 1]
                  Status <- Y[, 2]  
-                 tryboot <- try(es(Time, Status, X, Z, id = id_boot, model, corstr, stdz, esmax = 100, eps = 1e-06), silent = TRUE)  
+                 tryboot <- try(emes(Time, Status, X, Z, id = id_boot, corstr, stdz, esmax = 100, eps = 1e-06), silent = TRUE)  
                  if(is(tryboot,"try-error") == FALSE)
                  break
               }
             esfitboot <- tryboot
             BMc[rrn, ] <- esfitboot$gamma
             BMs[rrn, ] <- esfitboot$beta
-            if (model == "semi") {
-                BMnus[rrn, ] <- c(esfitboot$gcor, esfitboot$bcor, esfitboot$gphi, esfitboot$bphi)
-            }
-            if (model == "para") {
-                BMnus[rrn, ] <- c(esfitboot$gcor, esfitboot$bcor, esfitboot$gphi, esfitboot$bphi, esfitboot$kappa)
-            }
+            BMnus[rrn, ] <- c(esfitboot$gcor, esfitboot$bcor, esfitboot$gphi, esfitboot$bphi)
         }
         var_gamma_boots <- apply(BMc, 2, var)
         sd_gamma_boots <- sqrt(var_gamma_boots)
@@ -135,15 +107,9 @@ geecure <- function(formula, cureform, data, id, model = c("para", "semi"), cors
         sd_gcor_boots <- sqrt(var_gcor_boots)
         var_bcor_boots <- var(BMnus[, 2])
         sd_bcor_boots <- sqrt(var_bcor_boots)
-        if (model == "para") {
-            var_kappa_boots <- var(BMnus[, 5])
-            sd_kappa_boots <- sqrt(var_kappa_boots)
-            var_alpha2_boots <- var(exp(BMs[, 1]))    
-            sd_alpha2_boots <- sqrt(var_alpha2_boots)
-        }
     }    
     fit <- list()
-    class(fit) <- c("geecure")    
+    class(fit) <- c("geecure2")    
     fit$gamma <- gamma
     if (Var) {
         fit$gamma_var <- var_gamma
@@ -157,20 +123,6 @@ geecure <- function(formula, cureform, data, id, model = c("para", "semi"), cors
         fit$beta_sd <- sd_beta
         fit$beta_zvalue <- beta/sd_beta
         fit$beta_pvalue <- (1 - pnorm(abs(fit$beta_zvalue))) * 2
-    }    
-    if (model == "para") {
-        fit$kappa <- kappa
-        fit$alpha2 <- alpha2
-        if (Var) {
-            fit$kappa_var <- var_kappa
-            fit$kappa_sd <- sd_kappa
-            fit$kappa_zvalue <- kappa/sd_kappa
-            fit$kappa_pvalue <- (1 - pnorm(abs(fit$kappa_zvalue))) * 2
-            fit$alpha2_var <- var_alpha2
-            fit$alpha2_sd <- sd_alpha2
-            fit$alpha2_zvalue <- alpha2/sd_alpha2
-            fit$alpha2_pvalue <- (1 - pnorm(abs(fit$alpha2_zvalue))) * 2
-         }
     }    
     fit$alpha <- gcor
     fit$rho <- bcor
@@ -191,27 +143,18 @@ geecure <- function(formula, cureform, data, id, model = c("para", "semi"), cors
         fit$boots_beta_pvalue <- (1 - pnorm(abs(fit$boots_beta_zvalue))) * 2
         fit$boots_gcor_pvalue <- (1 - pnorm(abs(fit$boots_gcor_zvalue))) * 2
         fit$boots_bcor_pvalue <- (1 - pnorm(abs(fit$boots_bcor_zvalue))) * 2
-        if (model == "para") {
-            fit$boots_kappa_sd <- sd_kappa_boots
-            fit$boots_kappa_zvalue <- kappa/sd_kappa_boots
-            fit$boots_kappa_pvalue <- (1 - pnorm(abs(fit$boots_kappa_zvalue))) * 2
-            fit$boots_alpha2_sd <- sd_alpha2_boots
-            fit$boots_alpha2_zvalue <- exp(beta[1])/sd_alpha2_boots
-            fit$boots_alpha2_pvalue <- (1 - pnorm(abs(fit$boots_alpha2_zvalue))) * 2
-        }
     }    
     fit$call <- call   
     fit$gamma_name <- gamma_name
     fit$beta_name <- beta_name    
     fit$Time <- Time
-    fit$model <- model
     fit$Var <- Var
     fit$boots <- boots
-    class(fit) = "geecure"
+    class(fit) = "geecure2"
     fit
 }
 
-print.geecure <- function(x, ...) {
+print.geecure2 <- function(x, ...) {
     if (!is.null(cl <- x$call)) {
         cat("Call:\n")
         dput(cl)
@@ -254,7 +197,6 @@ print.geecure <- function(x, ...) {
     cat("\n")
     cat("\nFailure Time Distribution Model:\n")
     if (x$Var) {
-        if (x$model == "semi") {
             if (x$boots) {
                 bt <- array(x$beta, c(length(x$beta), 4))
                 rownames(bt) <- x$beta_name
@@ -271,30 +213,8 @@ print.geecure <- function(x, ...) {
                 bt[, 3] <- x$beta_zvalue
                 bt[, 4] <- x$beta_pvalue
             }
-        }
-		else {
-            if (x$boots) {
-                bt <- array(0, c(length(x$beta[-1]), 4))
-                rownames(bt) <- x$beta_name[-1]
-                colnames(bt) <- c("Estimate", "Std.Error", "Z value", "Pr(>|Z|)")
-                bt[, 1] <- x$beta[-1]
-                bt[, 2] <- x$boots_beta_sd[-1]
-                bt[, 3] <- x$boots_beta_zvalue[-1]
-                bt[, 4] <- x$boots_beta_pvalue[-1]
-            }
-			else {
-                bt <- array(0, c(length(x$beta[-1]), 4))
-                rownames(bt) <- x$beta_name[-1]
-                colnames(bt) <- c("Estimate", "Std.Error", "Z value", "Pr(>|Z|)")
-                bt[, 1] <- x$beta[-1]
-                bt[, 2] <- x$beta_sd[-1]
-                bt[, 3] <- x$beta_zvalue[-1]
-                bt[, 4] <- x$beta_pvalue[-1]
-            }
-       }
     }
 	else {
-        if (x$model == "semi") {
             if (x$boots) {
                 bt <- array(x$beta, c(length(x$beta), 4))
                 rownames(bt) <- x$beta_name
@@ -307,66 +227,10 @@ print.geecure <- function(x, ...) {
                 bt <- array(x$beta, c(length(x$beta), 1))
                 rownames(bt) <- x$beta_name
                 colnames(bt) <- "Estimate"
-            }
-        }
-		else {
-            if (x$boots) {
-                bt <- array(0, c(length(x$beta[-1]), 4))
-                rownames(bt) <- x$beta_name
-                colnames(bt) <- c("Estimate", "Std.Error", "Z value", "Pr(>|Z|)")
-                bt[, 1] <- x$beta[-1]
-                bt[, 2] <- x$boots_beta_sd[-1]
-                bt[, 3] <- x$boots_beta_zvalue[-1]
-                bt[, 4] <- x$boots_beta_pvalue[-1]
-            }
-			else {
-                bt <- array(0, c(length(x$beta[-1]), 1))
-                bt[, 1] <- x$beta[-1]
-                rownames(bt) <- x$beta_name[-1]
-                colnames(bt) <- "Estimate"
-            }
-        }
+            }        
     }
     print(bt)
     cat("\n")
-    if(x$model == "para") {
-    cat("\nEstimated Parameters in Weibull Distribution:\n")
-    if (x$Var) {
-          if (x$boots) {
-                kp <- array(c(x$kappa, x$alpha2), c(2, 4))
-                rownames(kp) <- c("alpha_1", "alpha_2")
-                colnames(kp) <- c("Estimate", "Std.Error", "Z value", "Pr(>|Z|)")
-                kp[, 2] <- c(x$boots_kappa_sd, x$boots_alpha2_sd)
-                kp[, 3] <- c(x$boots_kappa_zvalue, x$boots_alpha2_zvalue)  
-                kp[, 4] <- c(x$boots_kappa_pvalue, x$boots_alpha2_pvalue)
-            }
-	    else {
-                kp <- array(c(x$kappa, x$alpha2), c(2, 4))
-                rownames(kp) <- c("alpha_1", "alpha_2")
-                colnames(kp) <- c("Estimate", "Std.Error", "Z value", "Pr(>|Z|)")
-                kp[, 2] <- c(x$kappa_sd, x$alpha2_sd)
-                kp[, 3] <- c(x$kappa_zvalue, x$alpha2_zvalue) 
-                kp[, 4] <- c(x$kappa_pvalue, x$alpha2_pvalue)
-            }
-         } 
-     else {
-           if (x$boots) {
-                kp <- array(c(x$kappa, x$alpha2), c(2, 4))
-                rownames(kp) <- c("alpha_1", "alpha_2")
-                colnames(kp) <- c("Estimate", "Std.Error", "Z value", "Pr(>|Z|)")
-                kp[, 2] <- c(x$boots_kappa_sd, x$boots_alpha2_sd) 
-                kp[, 3] <- c(x$boots_kappa_zvalue, x$boots_alpha2_zvalue)
-                kp[, 4] <- c(x$boots_kappa_pvalue, x$boots_alpha2_pvalue)
-              }
-	    else {
-                kp <- array(c(x$kappa, x$alpha2), c(2, 1))
-                rownames(kp) <- c("alpha_1", "alpha_2")
-                colnames(kp) <- "Estimate"
-             }
-          } 
-    print(kp)
-    cat("\n")
- }
     cat("\nEstimated Correlation Parameters:\n")
     if (x$boots) {
         dep <- array(0, c(2, 4))

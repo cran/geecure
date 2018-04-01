@@ -7,7 +7,7 @@ initial_Lambda <- function(Time, Status, X, Z, id, model, corstr) {
     cens <- Status
     t11 <- sort(Time)
     c11 <- Status[order(Time)]
-    x111 <- X[order(Time), ]
+    x111 <- as.matrix(X[order(Time), ])
     g11 <- w[order(Time)]
     tt1 <- unique(t11[c11 == 1])
     kk <- length(table(t11[c11 == 1]))
@@ -26,9 +26,9 @@ initial_Lambda <- function(Time, Status, X, Z, id, model, corstr) {
         repeat {
             gSS <- rep(0, kk)
             gSS1 <- rep(1, kk)            
-            gSS[1] <- dd[1]/(sum(g11[min((1:(Kn))[t11 == tt1[1]]):(Kn)] * exp(x111[min((1:(Kn))[t11 == tt1[1]]):(Kn), ] %*% pmt1s)))
+            gSS[1] <- dd[1]/(sum(g11[min((1:(Kn))[t11 == tt1[1]]):(Kn)] * exp(as.matrix(x111[min((1:(Kn))[t11 == tt1[1]]):(Kn), ]) %*% pmt1s)))
             for (i in 1:(kk - 1)) {
-                gSS[i + 1] <- gSS[i] + dd[i + 1]/(sum(g11[min((1:(Kn))[t11 == tt1[i + 1]]):(Kn)] * exp(x111[min((1:(Kn))[t11 == tt1[i + 1]]):(Kn), ] %*% pmt1s)))
+                gSS[i + 1] <- gSS[i] + dd[i + 1]/(sum(g11[min((1:(Kn))[t11 == tt1[i + 1]]):(Kn)] * exp(as.matrix(x111[min((1:(Kn))[t11 == tt1[i + 1]]):(Kn), ]) %*% pmt1s)))
             }
             gSS1 <- exp(-gSS)
             gSS2 <- rep(0, Kn)
@@ -47,7 +47,7 @@ initial_Lambda <- function(Time, Status, X, Z, id, model, corstr) {
                       if (t2[i] >= tt1[kk1]) 
                         kk1 <- kk1 + 1 else break
                     }
-                    { gSS2[i] <- (gSS1[kk1 - 1])^(exp(X[i, ] %*% pmt1s))
+                    { gSS2[i] <- (gSS1[kk1 - 1])^(exp(as.matrix(X[i, ]) %*% pmt1s))
                       gSS3[i] <- gSS[kk1 - 1]
                     }
                   }

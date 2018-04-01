@@ -52,8 +52,8 @@ es <- function(Time, Status, X, Z, id, model, corstr, stdz, esmax, eps) {
     }
     kappa <- basesurv(Time, Status, X = X1, beta = beta1, Lambda, w, model)$kappa
     if (stdz == "TRUE") {
-        gamma1 <- c(gamma1[1] - sum((gamma1[-1] * apply(Z1[, -1], 2, mean)/apply(Z1[, -1], 2, sd))), gamma1[-1]/apply(Z1[, 
-            -1], 2, sd))
+        gamma1 <- c(gamma1[1] - sum((gamma1[-1] * apply(Z1[, -1, drop = FALSE], 2, mean)/apply(Z1[, -1, drop = FALSE], 2, sd))), gamma1[-1]/apply(Z1[, 
+            -1, drop = FALSE], 2, sd))
         beta1 <- beta1/apply(X1, 2, sd)
     }
     if (corstr == "independence") {

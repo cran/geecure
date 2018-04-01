@@ -1,14 +1,17 @@
 basesurv <- function(Time, Status, X, beta, Lambda, w, model) {
     if (model == "para") {
+       # kappa <- log(-sum(Status)/sum(w * log(Time) * (Status - Lambda * exp(beta %*% t(X)))))
+       # bcumhaz <- Time^(exp(kappa))
         kappa <- -sum(Status)/sum(w * log(Time) * (Status - Lambda * exp(beta %*% t(X))))
-        bcumhaz <- Time^kappa
+        bcumhaz <- Time^(kappa)
+        bsurv <- exp(-bcumhaz)
         uncuresurv <- exp(-bcumhaz * exp(beta %*% t(X)))
     }
     if (model == "semi") {
         t2 <- Time
         t11 <- sort(Time)
         c11 <- Status[order(Time)]
-        x111 <- X[order(Time), ]
+        x111 <- as.matrix(X[order(Time), ])
         g11 <- w[order(Time)]
         tt1 <- unique(t11[c11 == 1])
         kk <- length(table(t11[c11 == 1]))
@@ -43,9 +46,11 @@ basesurv <- function(Time, Status, X, beta, Lambda, w, model) {
                 }
             }
         }
+        bsurv <- gSS1
         bcumhaz <- gSS3
         uncuresurv <- gSS2
         kappa <- 1
+        logkappa <- 0
     }
-    list(uncuresurv = uncuresurv, bcumhaz = bcumhaz, kappa = kappa)
+    list(uncuresurv = uncuresurv, bcumhaz = bcumhaz, bsurv = bsurv, kappa = kappa)
 }

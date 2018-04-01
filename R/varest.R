@@ -307,21 +307,23 @@ varest <- function(Time, Status, X, Z, id, gamma, beta, kappa, gphi, gcor, bphi,
             }
         }
         gSS <- sort(unique(Lambda))
+        if(gSS[1] == 1e-08)
+        { gSS <- gSS[-1] }
         gS <- c(gSS[1], gSS[2:kk] - gSS[1:(kk - 1)])
         BBC <- matrix(0, kk, dim(z2)[2])
         xxxx <- z2
         gg1 <- g1
         for (j in 1:dim(z2)[2]) {
             for (s in 1:(kk)) {
-                BCm <- gS[s] * exp(xxxx[(c1 == 1) & (t2 == tt1[s]), ] %*% be)
-                BBC[s, j] <- sum(exp(xxxx[(c1 == 1) & (t2 == tt1[s]), ] %*% be) * (exp(-BCm) + BCm * exp(-BCm) - 1)/((1 - exp(-BCm))^2) * xxxx[(c1 == 1) & (t2 == tt1[s]), j]) + sum(gg1[t2 >= 
-                  tt1[s]] * exp(xxxx[t2 >= tt1[s], ] %*% be) * xxxx[t2 >= tt1[s], j])
+                BCm <- gS[s] * exp(xxxx[(c1 == 1) & (t2 == tt1[s]), ,drop = FALSE] %*% be)
+                BBC[s, j] <- sum(exp(xxxx[(c1 == 1) & (t2 == tt1[s]), ,drop = FALSE] %*% be) * (exp(-BCm) + BCm * exp(-BCm) - 1)/((1 - exp(-BCm))^2) * xxxx[(c1 == 1) & (t2 == tt1[s]), j]) + sum(gg1[t2 >= 
+                  tt1[s]] * exp(xxxx[t2 >= tt1[s], ,drop = FALSE] %*% be) * xxxx[t2 >= tt1[s], j])
             }
         }
         CCC <- rep(0, (kk))
         for (s in 1:(kk)) {
-            CCm <- gS[s] * exp(xxxx[(c1 == 1) & (t2 == tt1[s]), ] %*% be)
-            CCC[s] <- -sum(exp(2 * (xxxx[(c1 == 1) & (t2 == tt1[s]), ] %*% be) - CCm)/(1 - exp(-CCm))^2)
+            CCm <- gS[s] * exp(xxxx[(c1 == 1) & (t2 == tt1[s]), ,drop = FALSE] %*% be)
+            CCC[s] <- -sum(exp(2 * (xxxx[(c1 == 1) & (t2 == tt1[s]), ,drop = FALSE] %*% be) - CCm)/(1 - exp(-CCm))^2)
         }
         BC <- matrix(0, dim(z2)[2], kk)
         for (r in 1:dim(z2)[2]) {

@@ -27,7 +27,7 @@ geebt <- function(Status, Lambda, X, beta, w, id, corstr) {
                   for (j in 1:(n[i] - 1)) rres <- rres + res[i, j] * sum(res[i, (j + 1):n[i]])
                 }
             }
-            rho <- (pphi^(-1)) * rres/(sum(n * (n - 1))/2 - dim(X[, -1])[2])
+            rho <- (pphi^(-1)) * rres/(sum(n * (n - 1))/2 - dim(X[, -1, drop = FALSE])[2])
         }
         SK <- 1
         repeat {

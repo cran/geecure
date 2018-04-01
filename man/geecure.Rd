@@ -34,19 +34,18 @@ geecure(formula, cureform, data, id, model = c("para", "semi"),
   \item{eps}{tolerance for convergence. The default is \code{eps = 1e-6}. Iteration stops once the relative change in deviance is less than \code{eps}.
 }
 }
-\details{The marginal PHMC model is considered in this function. For cure rate, a logistic regression model is employed and the probability of being cured is given by \eqn{(1+\exp(\gamma Z))^{(-1)}}. For uncured subject, the failure time is modeled by either the parametric proportional hazards model with Weibull baseline distributions or the semiparametric proportional hazards model. A covariate can be used either in \code{formula} or in \code{cureform} or in both. The model parameters are estimated by the expectation-solution (ES) algorithm and the standard error estimates are obtained from sandwich variance formula based on Niu and Peng (2014) and Niu et al. (2017).}
+\details{The marginal PHMC model is considered in this function. For cure rate, a logistic regression model is employed and the probability of being cured is given by \eqn{(1+\exp(\gamma Z))^{(-1)}}. For uncured subject, the failure time is modeled by either the parametric proportional hazards model with Weibull baseline distributions or the semiparametric proportional hazards model. A covariate can be used either in \code{formula} or in \code{cureform} or in both. The model parameters are estimated by the expectation-solution (ES) algorithm and the standard error estimates are obtained from sandwich variance formula based on Niu and Peng (2014) and Niu et al. (2018).}
 \value{An object of class \code{geecure} is returned. It can be examined by \code{print.geecure()}.}
 \references{
 Niu, Y. and Peng, Y. (2014) Marginal regression analysis of clustered failure time data with a cure fraction. \emph{Journal of Multivariate Analysis}, \bold{123}: 129-142.
 
-Niu, Y., Song, L., Liu, Y, and Peng, Y. (2017) Modeling clustered long-term survivors using marginal mixture cure model. under revision.
+Niu, Y., Song, L., Liu, Y, and Peng, Y. (2018) Modeling clustered long-term survivors using marginal mixture cure model. \emph{Biometrical Journal}, doi: 10.1002/bjmj.201700114.
 }
-
 \examples{
 \dontshow{# for checks
            data(bmt)
            testdata <- bmt[(1:dim(bmt)[1])[bmt$Z9 == 2 | bmt$Z9 == 3], ] 
-           geecuretest <- geecure(Surv(T2, d3) ~ factor(g), cureform = ~ factor(g), 
+           geecuretest <- geecure(Surv(T2, d3) ~ Z8, cureform = ~ Z8, 
            data = testdata, model =  "semi", id = testdata$Z9, corstr= "independence")
 }
 \donttest{# Be patient, the following examples may take several minites on a faster computer.
@@ -55,7 +54,7 @@ data(smoking)
 smoking$Time <- ifelse(smoking$Relapse == 0, smoking$Timept1, 
                        (smoking$Timept1 + smoking$Timept2)/2)
 
-# plot KM survival curve of smoking cessation data
+# plot the KM survival curve of smoking cessation data
 plot(survfit(Surv(Time, Relapse) ~ SexF + (SI.UC), data = smoking), 
       ylab = "Survival function", xlab = "Years", ylim = c(0.5, 1), 
       xlim = c(0, 6), lty = 1:4, col = 1:4)
@@ -72,7 +71,10 @@ geesmokingexch <- geecure(Surv(Time, Relapse) ~ SexF + Duration + SI.UC + F10Cig
 
 # Example 2. Fit the marginal semiparametric PHMC model for the bmt data.
 data(bmt)
-# plot KM survival curve of bmt data 
+bmt$g <- factor(bmt$g, label = c("ALL", "AML low risk", "AML high risk"))
+bmt$Z8 <- factor(bmt$Z8, label = c("Otherwise", "FAB"))
+
+# plot the KM survival curve of bmt data 
 plot(survfit(Surv(T2, d3) ~ 1, data = bmt), xlab = "Days", ylab = "Survival Probability", 
      cex.lab = 1.7, cex.axis = 2, cex.main = 1.7, mark.time = TRUE)
 
@@ -82,5 +84,24 @@ geebmtind <- geecure(Surv(T2, d3) ~ factor(g) + Z8, cureform = ~ factor(g) + Z8,
 geebmtexch <- geecure(Surv(T2, d3) ~ factor(g) + Z8, cureform = ~ factor(g) + Z8, 
               data = bmt, model = "semi", id = bmt$Z9, corstr= "exchangeable", 
               stdz = TRUE, boots = TRUE)
+
+# Example 3. Fit the marginal semiparametric PHMC model for the tonsil data.
+data(tonsil)
+tonsil<-tonsil[-c(141,136,159),]
+tonsil$Sex <- ifelse(tonsil$Sex == 1, 0, 1)
+tonsil$Cond <- ifelse(tonsil$Cond == 1, 0, 1)
+tonsil$T <- ifelse(tonsil$T < 4, 0, 1)
+
+# plot the KM survival curve of tonsil data 
+plot(survfit(Surv(Time, Status) ~ 1, data = tonsil), xlab = "Days", ylab = "Survival 
+     Probability", cex.lab = 1.7, cex.axis = 2, cex.main = 1.7, mark.time = TRUE)
+
+geetonsilind <- geecure2(Surv(Time, Status) ~ Sex + factor(Grade) + Age + Cond + T, 
+                cureform = ~ Sex + factor(Grade) + Age + Cond + T, data = tonsil, 
+                id = tonsil$Inst, corstr = "independence")
+
+geetonsilexch <- geecure2(Surv(Time, Status) ~ Sex + factor(Grade) +Age + Cond + T, 
+                 cureform = ~ Sex + factor(Grade) + Age + Cond + T, data = tonsil, 
+                id = tonsil$Inst, corstr = "exchangeable",  stdz = TRUE, Var = FALSE)
 }
 }

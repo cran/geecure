@@ -6,8 +6,8 @@
 \details{
 {Package: geecure \cr
  Type: Package \cr
- Version: 1.0-2  \cr
- Date: 2017-11-26 \cr
+ Version: 1.0-6  \cr
+ Date: 2018-03-28 \cr
  License: GPL(>=2) \cr
  LazyData: TRUE 
 }}
@@ -22,7 +22,7 @@ Niu, Y. and Peng, Y. (2013) A semiparametric marginal mixture cure model for clu
 
 Niu, Y. and Peng, Y. (2014) Marginal regression analysis of clustered failure time data with a cure fraction. \emph{Journal of Multivariate Analysis}, \bold{123}: 129-142.
 
-Niu, Y., Song, L., Liu, Y, and Peng, Y. (2017) Modeling clustered long-term survivors using marginal mixture cure model. under revision.
+Niu, Y., Song, L., Liu, Y, and Peng, Y. (2018) Modeling clustered long-term survivors using marginal mixture cure model.  \emph{Biometrical Journal}, doi: 10.1002/bjmj.201700114.
 
 Peng, Y., Taylor, J. M. G, and Yu, B. (2007) A marginal regression model for multivariate failure time data with a surviving fraction. \emph{Lifetime Data Analysis}, \bold{13}: 351-369
 
